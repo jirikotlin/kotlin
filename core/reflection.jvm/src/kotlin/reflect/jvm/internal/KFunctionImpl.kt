@@ -48,10 +48,14 @@ internal class KFunctionImpl private constructor(
 
     private fun isDeclared(): Boolean = Visibilities.isPrivate(descriptor.visibility)
 
-    override val caller: FunctionCaller<*> by ReflectProperties.lazySoft {
+    override val caller: FunctionCaller<*> by ReflectProperties.lazySoft caller@ {
         val jvmSignature = RuntimeTypeMapper.mapSignature(descriptor)
         val member: Member? = when (jvmSignature) {
-            is KotlinConstructor -> container.findConstructorBySignature(jvmSignature.constructorDesc, isDeclared())
+            is KotlinConstructor -> {
+                if (isAnnotationConstructor)
+                    return@caller AnnotationConstructorCaller(container.jClass, parameters.map { it.name!! }, false)
+                container.findConstructorBySignature(jvmSignature.constructorDesc, isDeclared())
+            }
             is KotlinFunction -> container.findMethodBySignature(jvmSignature.methodName, jvmSignature.methodDesc, isDeclared())
             is JavaMethod -> jvmSignature.method
             is JavaConstructor -> jvmSignature.constructor
@@ -71,14 +75,16 @@ internal class KFunctionImpl private constructor(
         }
     }
 
-    override val defaultCaller: FunctionCaller<*>? by ReflectProperties.lazySoft {
+    override val defaultCaller: FunctionCaller<*>? by ReflectProperties.lazySoft defaultCaller@ {
         val jvmSignature = RuntimeTypeMapper.mapSignature(descriptor)
         val member: Member? = when (jvmSignature) {
             is KotlinFunction -> {
                 container.findDefaultMethod(jvmSignature.methodName, jvmSignature.methodDesc,
-                                            !Modifier.isStatic(caller.member.modifiers), isDeclared())
+                                            !Modifier.isStatic(caller.member!!.modifiers), isDeclared())
             }
             is KotlinConstructor -> {
+                if (isAnnotationConstructor)
+                    return@defaultCaller AnnotationConstructorCaller(container.jClass, parameters.map { it.name!! }, true)
                 container.findDefaultConstructor(jvmSignature.constructorDesc, isDeclared())
             }
             else -> {
