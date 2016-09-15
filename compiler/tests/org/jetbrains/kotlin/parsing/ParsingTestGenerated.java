@@ -145,6 +145,12 @@ public class ParsingTestGenerated extends AbstractParsingTest {
             doParsingTest(fileName);
         }
 
+        @TestMetadata("destructuringInLambdas.kt")
+        public void testDestructuringInLambdas() throws Exception {
+            String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/psi/destructuringInLambdas.kt");
+            doParsingTest(fileName);
+        }
+
         @TestMetadata("DocCommentAfterFileAnnotations.kt")
         public void testDocCommentAfterFileAnnotations() throws Exception {
             String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/psi/DocCommentAfterFileAnnotations.kt");
