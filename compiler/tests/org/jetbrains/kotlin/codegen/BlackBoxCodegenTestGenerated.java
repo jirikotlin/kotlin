@@ -12128,6 +12128,24 @@ public class BlackBoxCodegenTestGenerated extends AbstractBlackBoxCodegenTest {
                 String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/codegen/box/reflection/createAnnotation/callKotlin.kt");
                 doTest(fileName);
             }
+
+            @TestMetadata("equalsHashCodeToString.kt")
+            public void testEqualsHashCodeToString() throws Exception {
+                String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/codegen/box/reflection/createAnnotation/equalsHashCodeToString.kt");
+                doTest(fileName);
+            }
+
+            @TestMetadata("parameterNamedEquals.kt")
+            public void testParameterNamedEquals() throws Exception {
+                String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/codegen/box/reflection/createAnnotation/parameterNamedEquals.kt");
+                doTest(fileName);
+            }
+
+            @TestMetadata("primitivesAndArrays.kt")
+            public void testPrimitivesAndArrays() throws Exception {
+                String fileName = KotlinTestUtils.navigationMetadata("compiler/testData/codegen/box/reflection/createAnnotation/primitivesAndArrays.kt");
+                doTest(fileName);
+            }
         }
 
         @TestMetadata("compiler/testData/codegen/box/reflection/enclosing")

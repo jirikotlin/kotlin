@@ -18,6 +18,7 @@ package kotlin.reflect.jvm.internal
 
 import org.jetbrains.kotlin.load.java.structure.reflect.wrapperByPrimitive
 import java.lang.reflect.Proxy
+import java.util.*
 import kotlin.reflect.KClass
 import kotlin.reflect.KotlinReflectionInternalError
 import java.lang.reflect.Method as ReflectMethod
@@ -27,7 +28,7 @@ internal class AnnotationConstructorCaller(
         private val parameterNames: List<String>,
         private val areOptionalArgumentsAllowed: Boolean,
         origin: Origin,
-        methods: List<ReflectMethod> = parameterNames.map { name -> jClass.getDeclaredMethod(name) }
+        private val methods: List<ReflectMethod> = parameterNames.map { name -> jClass.getDeclaredMethod(name) }
 ) : FunctionCaller<Nothing?>(
         null, jClass, null, methods.map { it.genericReturnType }.toTypedArray() // TODO: test javaType for annotation constructor parameter
 ) {
@@ -60,7 +61,7 @@ internal class AnnotationConstructorCaller(
             transformed ?: throwIllegalArgumentType(index, parameterNames[index], erasedParameterTypes[index])
         }
 
-        return createAnnotationInstance(jClass, parameterNames.zip(values).toMap())
+        return createAnnotationInstance(jClass, methods, parameterNames.zip(values).toMap())
     }
 }
 
@@ -84,9 +85,60 @@ private fun throwIllegalArgumentType(index: Int, name: String, expectedJvmType: 
     throw IllegalArgumentException("Argument #$index $name is not of the required type ${expectedJvmType.kotlin.qualifiedName}")
 }
 
-private fun createAnnotationInstance(annotationClass: Class<*>, values: Map<String, Any>): Any {
+private fun createAnnotationInstance(annotationClass: Class<*>, methods: List<ReflectMethod>, values: Map<String, Any>): Any {
+    // TODO: test double NaN, float NaN and arrays of those: both equals and hashCode
+    fun equals(other: Any?): Boolean =
+            (other as? Annotation)?.annotationClass?.java == annotationClass &&
+            methods.all { method ->
+                val ours = values[method.name]
+                val theirs = method(other)
+                @Suppress("UNCHECKED_CAST")
+                when (ours) {
+                    is BooleanArray -> Arrays.equals(ours, theirs as BooleanArray)
+                    is CharArray -> Arrays.equals(ours, theirs as CharArray)
+                    is ByteArray -> Arrays.equals(ours, theirs as ByteArray)
+                    is ShortArray -> Arrays.equals(ours, theirs as ShortArray)
+                    is IntArray -> Arrays.equals(ours, theirs as IntArray)
+                    is FloatArray -> Arrays.equals(ours, theirs as FloatArray)
+                    is LongArray -> Arrays.equals(ours, theirs as LongArray)
+                    is DoubleArray -> Arrays.equals(ours, theirs as DoubleArray)
+                    else -> when {
+                        ours is Array<*> && ours.isArrayOf<String>() -> Arrays.equals(ours as Array<String>, theirs as Array<String>)
+                        else -> ours == theirs
+                    }
+                }
+            }
+
+    val hashCode by lazy {
+        values.entries.sumBy { entry ->
+            // TODO: use correct hash code for Float, Double and arrays
+            127 * entry.key.hashCode() xor entry.value.hashCode()
+        }
+    }
+
+    // TODO: test toString on many arguments
+    val toString by lazy {
+        buildString {
+            append('@')
+            append(annotationClass.canonicalName)
+            values.entries.joinTo(this, separator = ", ", prefix = "(", postfix = ")") { entry ->
+                // TODO: use correct toString for Float, Double and arrays; test
+                "${entry.key}=${entry.value}"
+            }
+        }
+    }
+
     return Proxy.newProxyInstance(annotationClass.classLoader /* TODO: test */, arrayOf(annotationClass)) { proxy, method, args ->
-        // TODO: support equals, hashCode, toString, annotationType
-        values[method.name] ?: throw KotlinReflectionInternalError("Method is not supported: $method (args: ${args.orEmpty().toList()})")
+        val name = method.name
+        when (name) {
+            "annotationType" -> annotationClass
+            "toString" -> toString
+            "hashCode" -> hashCode
+            else -> when {
+                name == "equals" && args?.size == 1 -> equals(args.single())
+                values.containsKey(name) -> values[name]
+                else -> throw KotlinReflectionInternalError("Method is not supported: $method (args: ${args.orEmpty().toList()})")
+            }
+        }
     }
 }
