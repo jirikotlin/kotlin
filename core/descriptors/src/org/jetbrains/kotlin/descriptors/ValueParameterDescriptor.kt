@@ -56,4 +56,6 @@ interface ValueParameterDescriptor : VariableDescriptor, ParameterDescriptor {
     val isNoinline: Boolean
 
     val isCoroutine: Boolean
+
+    val destructuringVariables: List<VariableDescriptor>?
 }

@@ -22,7 +22,7 @@ import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.types.KotlinType
 import org.jetbrains.kotlin.types.TypeSubstitutor
 
-class ValueParameterDescriptorImpl(
+class ValueParameterDescriptorImpl @JvmOverloads constructor(
         containingDeclaration: CallableDescriptor,
         original: ValueParameterDescriptor?,
         override val index: Int,
@@ -34,7 +34,8 @@ class ValueParameterDescriptorImpl(
         override val isNoinline: Boolean,
         override val isCoroutine: Boolean,
         override val varargElementType: KotlinType?,
-        source: SourceElement
+        source: SourceElement,
+        override val destructuringVariables: List<VariableDescriptor>? = null
 ) : VariableDescriptorImpl(containingDeclaration, annotations, name, outType, source), ValueParameterDescriptor {
     private val original: ValueParameterDescriptor = original ?: this
 

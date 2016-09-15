@@ -89,7 +89,14 @@ public class FunctionDescriptorUtil {
                                                 handler.addClassifierDescriptor(typeParameter);
                                             }
                                             for (ValueParameterDescriptor valueParameterDescriptor : descriptor.getValueParameters()) {
-                                                handler.addVariableDescriptor(valueParameterDescriptor);
+                                                if (valueParameterDescriptor.getDestructuringVariables() != null) {
+                                                    for (VariableDescriptor entry : valueParameterDescriptor.getDestructuringVariables()) {
+                                                        handler.addVariableDescriptor(entry);
+                                                    }
+                                                }
+                                                else {
+                                                    handler.addVariableDescriptor(valueParameterDescriptor);
+                                                }
                                             }
                                             return Unit.INSTANCE;
                                         }
