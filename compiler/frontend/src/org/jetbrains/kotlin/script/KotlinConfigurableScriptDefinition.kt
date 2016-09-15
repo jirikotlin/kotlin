@@ -34,7 +34,7 @@ import kotlin.script.StandardScriptTemplate
 data class KotlinConfigurableScriptDefinition(val config: KotlinScriptConfig, val environmentVars: Map<String, List<String>>?) : KotlinScriptDefinition {
     override val name = config.name
 
-    // TODO: fix this!!!
+    // This is a temporary workaround: this class will be removed later
     override val template: KClass<out Any>
         get() = StandardScriptTemplate::class
 
