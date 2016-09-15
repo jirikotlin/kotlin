@@ -26,6 +26,8 @@ import java.lang.reflect.Modifier
 import kotlin.jvm.internal.FunctionImpl
 import kotlin.reflect.KFunction
 import kotlin.reflect.KotlinReflectionInternalError
+import kotlin.reflect.jvm.internal.AnnotationConstructorCaller.Origin.JAVA
+import kotlin.reflect.jvm.internal.AnnotationConstructorCaller.Origin.KOTLIN
 import kotlin.reflect.jvm.internal.JvmFunctionSignature.*
 
 internal class KFunctionImpl private constructor(
@@ -53,12 +55,16 @@ internal class KFunctionImpl private constructor(
         val member: Member? = when (jvmSignature) {
             is KotlinConstructor -> {
                 if (isAnnotationConstructor)
-                    return@caller AnnotationConstructorCaller(container.jClass, parameters.map { it.name!! }, false)
+                    return@caller AnnotationConstructorCaller(container.jClass, parameters.map { it.name!! }, false, KOTLIN)
                 container.findConstructorBySignature(jvmSignature.constructorDesc, isDeclared())
             }
             is KotlinFunction -> container.findMethodBySignature(jvmSignature.methodName, jvmSignature.methodDesc, isDeclared())
             is JavaMethod -> jvmSignature.method
             is JavaConstructor -> jvmSignature.constructor
+            is FakeJavaAnnotationConstructor -> {
+                val methods = jvmSignature.methods
+                return@caller AnnotationConstructorCaller(container.jClass, methods.map { it.name }, false, JAVA, methods)
+            }
             is BuiltInFunction -> jvmSignature.getMember(container)
         }
 
@@ -84,8 +90,12 @@ internal class KFunctionImpl private constructor(
             }
             is KotlinConstructor -> {
                 if (isAnnotationConstructor)
-                    return@defaultCaller AnnotationConstructorCaller(container.jClass, parameters.map { it.name!! }, true)
+                    return@defaultCaller AnnotationConstructorCaller(container.jClass, parameters.map { it.name!! }, true, KOTLIN)
                 container.findDefaultConstructor(jvmSignature.constructorDesc, isDeclared())
+            }
+            is FakeJavaAnnotationConstructor -> {
+                val methods = jvmSignature.methods
+                return@defaultCaller AnnotationConstructorCaller(container.jClass, methods.map { it.name }, true, JAVA, methods)
             }
             else -> {
                 // Java methods, Java constructors and built-ins don't have $default methods
